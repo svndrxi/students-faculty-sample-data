@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student and Faculty Data Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .preview {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .sample-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #667eea;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Borrower Data Generator</h1>
+        <p class="subtitle">Generate sample student and faculty data for testing your import feature</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('students')">👨‍🎓 Students</button>
+            <button class="tab-btn" onclick="switchTab('faculty')">👨‍🏫 Faculty</button>
+        </div>
+
+        <!-- Students -->
+        <div id="students-content" class="tab-content active">
+            <div class="controls">
+                <label for="studentCount">Number of Student Records:</label>
+                <input type="number" id="studentCount" min="1" max="500" value="50">
+            </div>
+
+            <button class="btn" onclick="generateAndDownload('students')">Generate & Download Student Data</button>
+
+            <div class="preview">
+                <h3>Preview (First 5 Records)</h3>
+                <div class="sample-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID Number</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Year</th>
+                                <th>Program</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentPreview"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faculty -->
+        <div id="faculty-content" class="tab-content">
+            <div class="controls">
+                <label for="facultyCount">Number of Faculty Records:</label>
+                <input type="number" id="facultyCount" min="1" max="500" value="50">
+            </div>
+
+            <button class="btn" onclick="generateAndDownload('faculty')">Generate & Download Faculty Data</button>
+
+            <div class="preview">
+                <h3>Preview (First 5 Records)</h3>
+                <div class="sample-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Employee No.</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Department</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="facultyPreview"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-message" id="successMessage">✅ File generated successfully!</div>
+    </div>
+
+<script>
+/* ============================
+   NAME LISTS
+=============================*/
+const firstNames = [
+    'Juan','Maria','Jose','Ana','Miguel','Sofia','Gabriel','Isabella','Carlos','Camila',
+    'Diego','Valentina','Luis','Mariana','Pedro','Lucia','Rafael','Carmen','Fernando','Rosa',
+    'Antonio','Elena','Manuel','Patricia','Ricardo','Teresa','Roberto','Angela','Eduardo'
+];
+
+const lastNames = [
+    'Garcia','Rodriguez','Martinez','Hernandez','Lopez','Gonzalez','Perez','Sanchez','Ramirez',
+    'Torres','Flores','Rivera','Gomez','Diaz','Cruz','Reyes','Castillo','Mendoza','Ruiz','Santos'
+];
+
+/* ============================
+   PROGRAMS & DEPARTMENTS
+=============================*/
+const programs = [
+    'BSIT','BSCS','ACT',
+    'BSA','BSBA','BSTM',
+    'BEED','BSED-English','BSED-Math',
+    'BSN','BSPsych'
+];
+
+const departments = [
+    'College of Computer Studies',
+    'College of Business Administration',
+    'College of Tourism & Hospitality',
+    'College of Education',
+    'College of Nursing & Health Sciences',
+    'College of Psychology'
+];
+
+const programToDept = {
+    'BSIT': 'College of Computer Studies',
+    'BSCS': 'College of Computer Studies',
+    'ACT': 'College of Computer Studies',
+
+    'BSA': 'College of Business Administration',
+    'BSBA': 'College of Business Administration',
+
+    'BSTM': 'College of Tourism & Hospitality',
+
+    'BEED': 'College of Education',
+    'BSED-English': 'College of Education',
+    'BSED-Math': 'College of Education',
+
+    'BSN': 'College of Nursing & Health Sciences',
+
+    'BSPsych': 'College of Psychology'
+};
+
+/* ============================
+   STUDENT GENERATOR
+=============================*/
+function generateStudentData(count) {
+    const data = [];
+    const currentYear = new Date().getFullYear();
+    const sections = ['A','B','C','D'];
+
+    for (let i = 1; i <= count; i++) {
+        const year = Math.floor(Math.random() * 4) + 1;
+        const section = sections[Math.floor(Math.random() * sections.length)];
+        const yearSection = `${year}${section}`;
+
+        const program = programs[Math.floor(Math.random() * programs.length)];
+        const department = programToDept[program];
+
+        const first = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const last = lastNames[Math.floor(Math.random() * lastNames.length)];
+
+        const id = `${currentYear - year + 1}-${String(i).padStart(4, '0')}`;
+        const email = `${first.toLowerCase()}.${last.toLowerCase()}@student.fcpc.edu.ph`;
+        const contact = `09${Math.floor(Math.random() * 900000000 + 100000000)}`;
+
+        data.push({
+            id_number: id,
+            first_name: first,
+            last_name: last,
+            year: yearSection,
+            program: program,
+            department: department,
+            email: email,
+            contact_number: contact
+        });
+    }
+    return data;
+}
+
+/* ============================
+   FACULTY GENERATOR
+=============================*/
+function generateFacultyData(count) {
+    const data = [];
+    const currentYear = new Date().getFullYear();
+
+    for (let i = 1; i <= count; i++) {
+        const first = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const last = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const department = departments[Math.floor(Math.random() * departments.length)];
+        const id = `EMP-${currentYear}-${String(i).padStart(4, '0')}`;
+        const email = `${first.toLowerCase()}.${last.toLowerCase()}@fcpc.edu.ph`;
+        const contact = `09${Math.floor(Math.random() * 900000000 + 100000000)}`;
+
+        data.push({
+            id_number: id,
+            first_name: first,
+            last_name: last,
+            department: department,
+            email: email,
+            contact_number: contact
+        });
+    }
+    return data;
+}
+
+/* ============================
+   TAB SWITCHING
+=============================*/
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(`${tab}-content`).classList.add('active');
+
+    updatePreview(tab);
+}
+
+/* ============================
+   PREVIEW
+=============================*/
+function updatePreview(type) {
+    let data;
+    if (type === "students") {
+        data = generateStudentData(5);
+        const tbody = document.getElementById("studentPreview");
+        tbody.innerHTML = "";
+        data.forEach(s => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${s.id_number}</td>
+                    <td>${s.first_name}</td>
+                    <td>${s.last_name}</td>
+                    <td>${s.year}</td>
+                    <td>${s.program}</td>
+                </tr>`;
+        });
+    } 
+    else {
+        data = generateFacultyData(5);
+        const tbody = document.getElementById("facultyPreview");
+        tbody.innerHTML = "";
+        data.forEach(f => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${f.id_number}</td>
+                    <td>${f.first_name}</td>
+                    <td>${f.last_name}</td>
+                    <td>${f.department}</td>
+                    <td>${f.email}</td>
+                </tr>`;
+        });
+    }
+}
+
+/* ============================
+   EXPORT TO EXCEL
+=============================*/
+function generateAndDownload(type) {
+    let count, data, ws_data, filename;
+
+    if (type === "students") {
+        count = parseInt(document.getElementById("studentCount").value);
+        data = generateStudentData(count);
+
+        ws_data = [['id_number','first_name','last_name','year','program','department','email','contact_number']];
+        data.forEach(s => ws_data.push(Object.values(s)));
+
+        filename = `sample_students_${count}.xlsx`;
+    } 
+    else {
+        count = parseInt(document.getElementById("facultyCount").value);
+        data = generateFacultyData(count);
+
+        ws_data = [['id_number','first_name','last_name','department','email','contact_number']];
+        data.forEach(f => ws_data.push(Object.values(f)));
+
+        filename = `sample_faculty_${count}.xlsx`;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, type === 'students' ? 'Students' : 'Faculty');
+    XLSX.writeFile(wb, filename);
+
+    document.getElementById('successMessage').style.display = 'block';
+    setTimeout(() => document.getElementById('successMessage').style.display = 'none', 3000);
+}
+
+// Initialize preview
+updatePreview('students');
+</script>
+
+</body>
+</html>
